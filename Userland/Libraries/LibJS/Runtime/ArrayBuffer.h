@@ -44,6 +44,10 @@ public:
     void detach_buffer() { m_buffer = Empty {}; }
     bool is_detached() const { return m_buffer.has<Empty>(); }
 
+    size_t max_byte_length() const { return m_max_byte_length.get<size_t>(); }
+    void set_max_byte_length(size_t max_byte_length) { m_max_byte_length = max_byte_length; }
+    bool is_resizable() const { return m_max_byte_length.has<size_t>(); }
+
     enum Order {
         SeqCst,
         Unordered
@@ -74,6 +78,8 @@ private:
     // The various detach related members of ArrayBuffer are not used by any ECMA262 functionality,
     // but are required to be available for the use of various harnesses like the Test262 test runner.
     Value m_detach_key;
+
+    Variant<Empty, size_t> m_max_byte_length { Empty {} };
 };
 
 ThrowCompletionOr<ArrayBuffer*> allocate_array_buffer(VM&, FunctionObject& constructor, size_t byte_length);

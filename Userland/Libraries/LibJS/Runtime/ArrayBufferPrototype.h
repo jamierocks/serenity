@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020, Linus Groh <linusg@serenityos.org>
+ * Copyright (c) 2022, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -23,6 +24,7 @@ private:
 
     JS_DECLARE_NATIVE_FUNCTION(slice);
     JS_DECLARE_NATIVE_FUNCTION(byte_length_getter);
+    JS_DECLARE_NATIVE_FUNCTION(max_byte_length_getter);
 };
 
 }

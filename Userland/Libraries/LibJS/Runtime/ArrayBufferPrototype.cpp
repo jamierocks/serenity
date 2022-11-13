@@ -143,4 +143,33 @@ JS_DEFINE_NATIVE_FUNCTION(ArrayBufferPrototype::byte_length_getter)
     return Value(length);
 }
 
+// 1.3.2 ArrayBuffer.prototype.maxByteLength, https://tc39.es/proposal-resizablearraybuffer/#sec-get-arraybuffer.prototype.maxbytelength
+JS_DEFINE_NATIVE_FUNCTION(ArrayBufferPrototype::max_byte_length_getter)
+{
+    // 1. Let O be the this value.
+    // 2. Perform ? RequireInternalSlot(O, [[ArrayBufferData]]).
+    auto* array_buffer_object = TRY(typed_this_value(vm));
+
+    // 3. If IsSharedArrayBuffer(O) is true, throw a TypeError exception.
+    // FIXME: Check for shared buffer
+
+    // 4. If IsDetachedBuffer(O) is true, return +0𝔽.
+    if (array_buffer_object->is_detached())
+        return Value(0);
+
+    size_t length;
+
+    // 5. If IsResizableArrayBuffer(O) is true, then
+    if (array_buffer_object->is_resizable())
+        // a. Let length be O.[[ArrayBufferMaxByteLength]].
+        length = array_buffer_object->max_byte_length();
+    // 6. Else,
+    else
+        // a. Let length be O.[[ArrayBufferByteLength]].
+        length = array_buffer_object->byte_length();
+
+    // 7. Return 𝔽(length).
+    return Value(length);
+}
+
 }

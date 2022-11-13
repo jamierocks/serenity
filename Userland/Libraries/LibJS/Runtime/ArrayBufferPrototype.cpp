@@ -32,6 +32,7 @@ void ArrayBufferPrototype::initialize(Realm& realm)
 }
 
 // 25.1.5.3 ArrayBuffer.prototype.slice ( start, end ), https://tc39.es/ecma262/#sec-arraybuffer.prototype.slice
+// 1.3.4 ArrayBuffer.prototype.slice ( start, end ), https://tc39.es/proposal-resizablearraybuffer/#sec-arraybuffer.prototype.slice
 JS_DEFINE_NATIVE_FUNCTION(ArrayBufferPrototype::slice)
 {
     auto& realm = *vm.current_realm();
@@ -107,16 +108,20 @@ JS_DEFINE_NATIVE_FUNCTION(ArrayBufferPrototype::slice)
     if (new_array_buffer_object->byte_length() < new_length)
         return vm.throw_completion<TypeError>(ErrorType::SpeciesConstructorReturned, "an ArrayBuffer smaller than requested");
 
-    // 22. NOTE: Side-effects of the above steps may have detached O.
+    // 22. NOTE: Side-effects of the above steps may have detached or resized O.
     // 23. If IsDetachedBuffer(O) is true, throw a TypeError exception.
     if (array_buffer_object->is_detached())
         return vm.throw_completion<TypeError>(ErrorType::DetachedArrayBuffer);
 
     // 24. Let fromBuf be O.[[ArrayBufferData]].
     // 25. Let toBuf be new.[[ArrayBufferData]].
-    // 26. Perform CopyDataBlockBytes(toBuf, 0, fromBuf, first, newLen).
-    // FIXME: Implement this to specification
-    array_buffer_object->buffer().span().slice(first, new_length).copy_to(new_array_buffer_object->buffer().span());
+
+    // 26. If first < O.[[ArrayBufferByteLength]], then
+    if (first < array_buffer_object->byte_length()) {
+        // a. Perform CopyDataBlockBytes(toBuf, 0, fromBuf, first, min(O.[[ArrayBufferByteLength]], newLen)).
+        // FIXME: Implement this to specification
+        array_buffer_object->buffer().span().slice(first, min(array_buffer_object->byte_length(), new_length)).copy_to(new_array_buffer_object->buffer().span());
+    }
 
     // 27. Return new.
     return new_array_buffer_object;

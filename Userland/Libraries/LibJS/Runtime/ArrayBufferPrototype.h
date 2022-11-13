@@ -25,6 +25,7 @@ private:
     JS_DECLARE_NATIVE_FUNCTION(slice);
     JS_DECLARE_NATIVE_FUNCTION(byte_length_getter);
     JS_DECLARE_NATIVE_FUNCTION(max_byte_length_getter);
+    JS_DECLARE_NATIVE_FUNCTION(resizable);
 };
 
 }

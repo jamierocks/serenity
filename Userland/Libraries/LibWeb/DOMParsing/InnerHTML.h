@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2021, Luke Wilde <lukew@serenityos.org>
+ * Copyright (c) 2024, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -15,6 +16,9 @@ namespace Web::DOMParsing {
 
 // https://w3c.github.io/DOM-Parsing/#dom-innerhtml-innerhtml
 WebIDL::ExceptionOr<void> inner_html_setter(JS::NonnullGCPtr<DOM::Node> context_object, StringView value);
+
+// https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
+WebIDL::ExceptionOr<void> outer_html_setter(JS::NonnullGCPtr<DOM::Node> context_object, String const& value);
 
 WebIDL::ExceptionOr<JS::NonnullGCPtr<DOM::DocumentFragment>> parse_fragment(StringView markup, DOM::Element& context_element);
 

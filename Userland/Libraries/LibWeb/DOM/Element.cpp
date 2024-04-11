@@ -1409,9 +1409,9 @@ WebIDL::ExceptionOr<String> Element::outer_html() const
 }
 
 // https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml
-WebIDL::ExceptionOr<void> Element::set_outer_html(String const&)
+WebIDL::ExceptionOr<void> Element::set_outer_html(String const& markup)
 {
-    dbgln("FIXME: Implement Element::set_outer_html()");
+    TRY(DOMParsing::outer_html_setter(*this, markup));
     return {};
 }
 

@@ -94,6 +94,39 @@ Optional<size_t> string_index_of(Utf16View const& string, Utf16View const& searc
     return {};
 }
 
+// 6.1.4.2 StringLastIndexOf ( string, searchValue, fromIndex ), https://tc39.es/ecma262/#sec-stringlastindexof
+Optional<size_t> string_last_index_of(Utf16String const& string, Utf16String const& search_value, size_t from_index)
+{
+    // 1. Let len be the length of string.
+    auto string_length = string.length_in_code_units();
+
+    // 2. Let searchLen be the length of searchValue.
+    auto search_length = search_value.length_in_code_units();
+
+    // 3. Assert: fromIndex + searchLen ≤ len.
+    VERIFY(from_index + search_length <= string_length);
+
+    // 4. For each integer i such that 0 ≤ i ≤ fromIndex, in descending order, do
+    for (size_t i = 0; (i <= from_index) && (i + search_length <= string_length); ++i) {
+        bool is_match = true;
+
+        // a. Let candidate be the substring of string from i to i + searchLen.
+        for (size_t j = 0; j < search_length; ++j) {
+            if (string.code_unit_at(i + j) != search_value.code_unit_at(j)) {
+                is_match = false;
+                break;
+            }
+        }
+
+        // b. If candidate is searchValue, return i.
+        if (is_match)
+            return i;
+    }
+
+    // 5. Return not-found.
+    return {};
+}
+
 // 7.2.9 Static Semantics: IsStringWellFormedUnicode ( string )
 static bool is_string_well_formed_unicode(Utf16View string)
 {
@@ -523,28 +556,16 @@ JS_DEFINE_NATIVE_FUNCTION(StringPrototype::last_index_of)
 
     // 9. Let start be the result of clamping pos between 0 and len - searchLen.
     size_t start = clamp(pos, static_cast<double>(0), static_cast<double>(string_length));
-    Optional<size_t> last_index;
 
-    // 10. If searchStr is the empty String, return 𝔽(start).
-    // 11. For each integer i such that 0 ≤ i ≤ start, in descending order, do
-    for (size_t k = 0; (k <= start) && (k + search_length <= string_length); ++k) {
-        bool is_match = true;
+    // 10. Let result be StringLastIndexOf(S, searchStr, start).
+    auto result = string_last_index_of(string, search_string, start);
 
-        // a. Let candidate be the substring of S from i to i + searchLen.
-        for (size_t j = 0; j < search_length; ++j) {
-            if (string.code_unit_at(k + j) != search_string.code_unit_at(j)) {
-                is_match = false;
-                break;
-            }
-        }
+    // 11. If result is not-found, return -1𝔽.
+    if (!result.has_value())
+        return Value(-1);
 
-        // b. If candidate is searchStr, return 𝔽(i).
-        if (is_match)
-            last_index = k;
-    }
-
-    // 12. Return -1𝔽.
-    return last_index.has_value() ? Value(*last_index) : Value(-1);
+    // 12. Return 𝔽(result).
+    return Value(*result);
 }
 
 // 22.1.3.12 String.prototype.localeCompare ( that [ , reserved1 [ , reserved2 ] ] ), https://tc39.es/ecma262/#sec-string.prototype.localecompare

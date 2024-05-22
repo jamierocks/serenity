@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2020, Andreas Kling <kling@serenityos.org>
  * Copyright (c) 2023, Luke Wilde <lukew@serenityos.org>
+ * Copyright (c) 2024, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -338,6 +339,37 @@ WebIDL::ExceptionOr<Vector<JS::Handle<PerformanceTimeline::PerformanceEntry>>> P
     // method input name parameter, and type set to null if optional entryType is omitted, or set to the method's input type
     // parameter otherwise.
     return TRY_OR_THROW_OOM(vm, window_or_worker().filter_buffer_map_by_name_and_type(name, type));
+}
+
+// https://w3c.github.io/resource-timing/#dom-performance-clearresourcetimings
+void Performance::clear_resource_timings()
+{
+    // 1. Remove all PerformanceResourceTiming objects in the performance entry buffer.
+    window_or_worker().clear_performance_entry_buffer({}, PerformanceTimeline::EntryTypes::resource);
+
+    // 2. Set resource timing buffer current size to 0.
+    window_or_worker().set_resource_timing_buffer_current_size(0);
+}
+
+// https://w3c.github.io/resource-timing/#dom-performance-setresourcetimingbuffersize
+void Performance::set_resource_timing_buffer_size(WebIDL::UnsignedLong max_size)
+{
+    // 1. Set resource timing buffer size limit to the maxSize parameter. If the maxSize parameter is less than
+    //    resource timing buffer current size, no PerformanceResourceTiming objects are to be removed from the
+    //    performance entry buffer.
+    window_or_worker().set_resource_timing_buffer_size_limit(max_size);
+}
+
+// https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
+WebIDL::CallbackType* Performance::onresourcetimingbufferfull()
+{
+    return event_handler_attribute(HTML::EventNames::resourcetimingbufferfull);
+}
+
+// https://w3c.github.io/resource-timing/#dom-performance-onresourcetimingbufferfull
+void Performance::set_onresourcetimingbufferfull(WebIDL::CallbackType* event_handler)
+{
+    set_event_handler_attribute(HTML::EventNames::resourcetimingbufferfull, event_handler);
 }
 
 HTML::WindowOrWorkerGlobalScopeMixin& Performance::window_or_worker()

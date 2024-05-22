@@ -89,6 +89,7 @@ namespace Web::HTML::EventNames {
     __ENUMERATE_HTML_EVENT(removetrack)              \
     __ENUMERATE_HTML_EVENT(reset)                    \
     __ENUMERATE_HTML_EVENT(resize)                   \
+    __ENUMERATE_HTML_EVENT(resourcetimingbufferfull) \
     __ENUMERATE_HTML_EVENT(scroll)                   \
     __ENUMERATE_HTML_EVENT(scrollend)                \
     __ENUMERATE_HTML_EVENT(securitypolicyviolation)  \

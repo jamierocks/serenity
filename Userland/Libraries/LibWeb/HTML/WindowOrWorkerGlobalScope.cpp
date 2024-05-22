@@ -700,6 +700,17 @@ JS::NonnullGCPtr<IndexedDB::IDBFactory> WindowOrWorkerGlobalScopeMixin::indexed_
     return *m_indexed_db;
 }
 
+// https://w3c.github.io/resource-timing/#dfn-can-add-resource-timing-entry
+bool WindowOrWorkerGlobalScopeMixin::can_add_resource_timing_event()
+{
+    // 1. If resource timing buffer current size is smaller than resource timing buffer size limit, return true.
+    if (m_resource_timing_buffer_current_size < m_resource_timing_buffer_size_limit)
+        return true;
+
+    // 2. Return false.
+    return false;
+}
+
 // https://w3c.github.io/performance-timeline/#dfn-frozen-array-of-supported-entry-types
 JS::NonnullGCPtr<JS::Object> WindowOrWorkerGlobalScopeMixin::supported_entry_types() const
 {

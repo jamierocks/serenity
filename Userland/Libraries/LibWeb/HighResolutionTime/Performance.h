@@ -36,6 +36,11 @@ public:
     WebIDL::ExceptionOr<Vector<JS::Handle<PerformanceTimeline::PerformanceEntry>>> get_entries_by_type(String const& type) const;
     WebIDL::ExceptionOr<Vector<JS::Handle<PerformanceTimeline::PerformanceEntry>>> get_entries_by_name(String const& name, Optional<String> type) const;
 
+    void clear_resource_timings();
+    void set_resource_timing_buffer_size(WebIDL::UnsignedLong max_size);
+    WebIDL::CallbackType* onresourcetimingbufferfull();
+    void set_onresourcetimingbufferfull(WebIDL::CallbackType*);
+
 private:
     explicit Performance(JS::Realm&);
 

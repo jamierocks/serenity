@@ -1,0 +1,29 @@
+#import <PerformanceTimeline/PerformanceEntry.idl>
+
+// https://w3c.github.io/resource-timing/#dom-performanceresourcetiming
+[Exposed=(Window,Worker)]
+interface PerformanceResourceTiming : PerformanceEntry {
+    readonly attribute DOMString initiatorType;
+    readonly attribute DOMString deliveryType;
+    // FIXME: readonly attribute ByteString nextHopProtocol;
+    // FIXME: readonly attribute DOMHighResTimeStamp workerStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp redirectStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp redirectEnd;
+    // FIXME: readonly attribute DOMHighResTimeStamp fetchStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp domainLookupStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp domainLookupEnd;
+    // FIXME: readonly attribute DOMHighResTimeStamp connectStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp connectEnd;
+    // FIXME: readonly attribute DOMHighResTimeStamp secureConnectionStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp requestStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp firstInterimResponseStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp responseStart;
+    // FIXME: readonly attribute DOMHighResTimeStamp responseEnd;
+    // FIXME: readonly attribute unsigned long long  transferSize;
+    // FIXME: readonly attribute unsigned long long  encodedBodySize;
+    // FIXME: readonly attribute unsigned long long  decodedBodySize;
+    readonly attribute unsigned short responseStatus;
+    // FIXME: readonly attribute RenderBlockingStatusType renderBlockingStatus;
+    // FIXME: readonly attribute DOMString contentType;
+    // FIXME: [Default] object toJSON();
+};

@@ -42,6 +42,8 @@ protected:
     PerformanceEntry(JS::Realm&, String const& name, HighResolutionTime::DOMHighResTimeStamp start_time, HighResolutionTime::DOMHighResTimeStamp duration);
     virtual void initialize(JS::Realm&) override;
 
+    void initialise_entry(HighResolutionTime::DOMHighResTimeStamp start_time, FlyString const& entry_type, String const& name, HighResolutionTime::DOMHighResTimeStamp end_time);
+
 private:
     // https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name
     String m_name;

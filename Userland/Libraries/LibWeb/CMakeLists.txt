@@ -583,6 +583,7 @@ set(SOURCES
     ResizeObserver/ResizeObserver.cpp
     ResizeObserver/ResizeObserverEntry.cpp
     ResizeObserver/ResizeObserverSize.cpp
+    ResourceTiming/PerformanceResourceTiming.cpp
     SecureContexts/AbstractOperations.cpp
     SRI/SRI.cpp
     Streams/AbstractOperations.cpp

@@ -102,11 +102,13 @@ void DedicatedWorkerHost::run(JS::NonnullGCPtr<Web::Page> page, Web::HTML::Trans
         auto process_custom_fetch_response_function = JS::create_heap_function(vm.heap(), move(process_custom_fetch_response));
 
         // 3. Fetch request with processResponseConsumeBody set to the following steps given response response and null, failure, or a byte sequence bodyBytes:
-        fetch_algorithms_input.process_response_consume_body = [worker_global_scope, process_custom_fetch_response_function](auto response, auto body_bytes) {
+        fetch_algorithms_input.process_response_consume_body = [worker_global_scope, process_custom_fetch_response_function, inner_settings](auto response, auto body_bytes) {
             // 1. Set worker global scope's url to response's url.
             worker_global_scope->set_url(response->url().value_or({}));
 
-            // FIXME: 2. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+            // 2. Initialize worker global scope's policy container given worker global scope, response, and inside settings.
+            worker_global_scope->initialise_policy_container(response, inner_settings);
+
             // FIXME: 3. If the Run CSP initialization for a global object algorithm returns "Blocked" when executed upon worker
             //    global scope, set response to a network error. [CSP]
             // FIXME: 4. If worker global scope's embedder policy's value is compatible with cross-origin isolation and is shared is true,

@@ -92,6 +92,8 @@ public:
 
     void initialize_web_interfaces(Badge<WorkerEnvironmentSettingsObject>);
 
+    void initialise_policy_container(JS::NonnullGCPtr<Fetch::Infrastructure::Response> response, JS::NonnullGCPtr<Environment> environment);
+
     Web::Page* page() { return m_page.ptr(); }
 
 protected:
@@ -129,6 +131,7 @@ private:
 
     // https://html.spec.whatwg.org/multipage/workers.html#concept-workerglobalscope-policy-container
     // A WorkerGlobalScope object has an associated policy container (a policy container). It is initially a new policy container.
+    HTML::PolicyContainer m_policy_container;
 
     // https://html.spec.whatwg.org/multipage/workers.html#concept-workerglobalscope-embedder-policy
     // A WorkerGlobalScope object has an associated embedder policy (an embedder policy).

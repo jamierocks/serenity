@@ -9,6 +9,7 @@
 #include <LibWeb/Bindings/Intrinsics.h>
 #include <LibWeb/Bindings/WorkerGlobalScopePrototype.h>
 #include <LibWeb/CSS/FontFaceSet.h>
+#include <LibWeb/Fetch/Infrastructure/URL.h>
 #include <LibWeb/HTML/EventHandler.h>
 #include <LibWeb/HTML/EventNames.h>
 #include <LibWeb/HTML/MessageEvent.h>
@@ -43,6 +44,18 @@ void WorkerGlobalScope::initialize_web_interfaces(Badge<WorkerEnvironmentSetting
     WindowOrWorkerGlobalScopeMixin::initialize(realm);
 
     m_navigator = WorkerNavigator::create(*this);
+}
+
+// https://html.spec.whatwg.org/multipage/browsers.html#initialize-worker-policy-container
+void WorkerGlobalScope::initialise_policy_container(JS::NonnullGCPtr<Fetch::Infrastructure::Response> response, JS::NonnullGCPtr<Environment> environment)
+{
+    // 1. If workerGlobalScope's url is local but its scheme is not "blob":
+    if (m_url.has_value() && Fetch::Infrastructure::is_local_url(m_url.release_value()) && m_url->scheme() != "blob") {
+        // 1. Assert: workerGlobalScope's owner set's size is 1.
+        // 2. Set workerGlobalScope's policy container to a clone of workerGlobalScope's owner set[0]'s relevant settings object's policy container.
+    }
+
+    // 1. Otherwise, set workerGlobalScope's policy container to the result of creating a policy container from a fetch response given response and environment.
 }
 
 void WorkerGlobalScope::visit_edges(Cell::Visitor& visitor)

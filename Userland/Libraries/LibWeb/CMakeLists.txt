@@ -268,6 +268,7 @@ set(SOURCES
     HTML/DOMParser.cpp
     HTML/DOMStringMap.cpp
     HTML/DataTransfer.cpp
+    HTML/EmbedderPolicy.cpp
     HTML/ErrorEvent.cpp
     HTML/EventHandler.cpp
     HTML/EventLoop/EventLoop.cpp

@@ -3,6 +3,7 @@
  * Copyright (c) 2021, the SerenityOS developers.
  * Copyright (c) 2021, Sam Atkins <atkinssj@serenityos.org>
  * Copyright (c) 2023, Srikavin Ramkumar <me@srikavin.me>
+ * Copyright (c) 2024, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -30,6 +31,7 @@
 #include <LibWeb/Loader/ResourceLoader.h>
 #include <LibWeb/Page/Page.h>
 #include <LibWeb/Platform/ImageCodecPlugin.h>
+#include <LibWeb/Fetch/Infrastructure/NetworkPartitionKey.h>
 
 namespace Web::HTML {
 
@@ -65,7 +67,14 @@ void HTMLLinkElement::inserted()
         return;
     }
 
-    if (m_relationship & Relationship::Stylesheet) {
+    if (m_relationship & Relationship::DNSPrefetch) {
+        // https://html.spec.whatwg.org/multipage/links.html#link-type-dns-prefetch:fetch-and-process-the-linked-resource
+        // The appropriate times to fetch and process this type of link are:
+        //  - When the external resource link is created on a link element that is already browsing-context connected.
+        //  - When the external resource link's link element becomes browsing-context connected.
+        // FIXME:  - When the href attribute of the link element of an external resource link that is already browsing-context connected is changed.
+        dns_prefetch_fetch_and_process_linked_resource();
+    } else if (m_relationship & Relationship::Stylesheet) {
         // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:fetch-and-process-the-linked-resource
         // The appropriate times to fetch and process this type of link are:
         //  - When the external resource link is created on a link element that is already browsing-context connected.
@@ -332,6 +341,26 @@ void HTMLLinkElement::default_fetch_and_process_linked_resource()
     };
 
     Fetch::Fetching::fetch(realm(), *request, Fetch::Infrastructure::FetchAlgorithms::create(vm(), move(fetch_algorithms_input))).release_value_but_fixme_should_propagate_errors();
+}
+
+// https://html.spec.whatwg.org/multipage/links.html#link-type-dns-prefetch:fetch-and-process-the-linked-resource-2
+void HTMLLinkElement::dns_prefetch_fetch_and_process_linked_resource()
+{
+    // 1. Let url be the result of encoding-parsing a URL given el's href attribute's value, relative to el's node document.
+    auto url = document().parse_url(get_attribute_value(HTML::AttributeNames::href));
+
+    // 2. If url is failure, then return.
+    if (!url.is_valid())
+        return;
+
+    // 3. Let partitionKey be the result of determining the network partition key given el's node document's relevant settings object.
+    auto partition_key = Fetch::Infrastructure::determine_the_network_partition_key(document().relevant_settings_object());
+
+    // 4. The user agent should resolve an origin given partitionKey and url's origin.
+
+
+    // FIXME: this is what's being rewritten
+    ResourceLoader::the().prefetch_dns(document().parse_url(get_attribute_value(HTML::AttributeNames::href)));
 }
 
 // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:process-the-linked-resource

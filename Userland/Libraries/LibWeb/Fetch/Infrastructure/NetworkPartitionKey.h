@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2024, Andrew Kaster <akaster@serenityos.org>
+ * Copyright (c) 2024, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -24,6 +25,8 @@ struct NetworkPartitionKey {
 NetworkPartitionKey determine_the_network_partition_key(HTML::Environment const& environment);
 
 Optional<NetworkPartitionKey> determine_the_network_partition_key(Infrastructure::Request const& request);
+
+void resolve_an_origin(NetworkPartitionKey key, HTML::Origin origin);
 
 }
 

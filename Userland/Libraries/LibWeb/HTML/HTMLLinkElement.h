@@ -119,6 +119,9 @@ private:
     // https://html.spec.whatwg.org/multipage/semantics.html#default-fetch-and-process-the-linked-resource
     void default_fetch_and_process_linked_resource();
 
+    // https://html.spec.whatwg.org/multipage/links.html#link-type-dns-prefetch:fetch-and-process-the-linked-resource-2
+    void dns_prefetch_fetch_and_process_linked_resource();
+
     void resource_did_load_favicon();
 
     struct Relationship {

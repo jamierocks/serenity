@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2024, Andrew Kaster <akaster@serenityos.org>
+ * Copyright (c) 2024, Jamie Mansfield <jmansfield@cadixdev.org>
  *
  * SPDX-License-Identifier: BSD-2-Clause
  */
@@ -41,6 +42,23 @@ Optional<NetworkPartitionKey> determine_the_network_partition_key(Infrastructure
         return determine_the_network_partition_key(*client);
 
     return {};
+}
+
+// https://fetch.spec.whatwg.org/#resolve-an-origin
+void resolve_an_origin(NetworkPartitionKey key, HTML::Origin origin)
+{
+    // 1. If origin’s host is an IP address, then return « origin’s host ».
+    origin.host();
+
+    // 2. If origin’s host’s public suffix is "localhost" or "localhost.", then return « ::1, 127.0.0.1 ».
+
+    // 3. Perform an implementation-defined operation to turn origin into a set of one or more IP addresses.
+    //     - It is also implementation-defined whether other operations might be performed to get connection information
+    //       beyond just IP addresses. For example, if origin’s scheme is an HTTP(S) scheme, the implementation might perform
+    //       a DNS query for HTTPS RRs. [SVCB]
+    //     - If this operation succeeds, return the set of IP addresses and any additional implementation-defined information.
+
+    // 4. Return failure.
 }
 
 }

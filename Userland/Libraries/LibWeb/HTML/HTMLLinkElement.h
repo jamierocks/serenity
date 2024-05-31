@@ -110,9 +110,6 @@ private:
     // https://html.spec.whatwg.org/multipage/links.html#link-type-stylesheet:linked-resource-fetch-setup-steps
     bool stylesheet_linked_resource_fetch_setup_steps(Fetch::Infrastructure::Request&);
 
-    // https://html.spec.whatwg.org/multipage/semantics.html#fetch-and-process-the-linked-resource
-    void fetch_and_process_linked_resource();
-
     // https://html.spec.whatwg.org/multipage/semantics.html#process-the-linked-resource
     void process_linked_resource(bool success, Fetch::Infrastructure::Response const&, Variant<Empty, Fetch::Infrastructure::FetchAlgorithms::ConsumeBodyFailureTag, ByteBuffer>);
 

@@ -70,7 +70,7 @@ void HTMLLinkElement::inserted()
         // The appropriate times to fetch and process this type of link are:
         //  - When the external resource link is created on a link element that is already browsing-context connected.
         //  - When the external resource link's link element becomes browsing-context connected.
-        fetch_and_process_linked_resource();
+        default_fetch_and_process_linked_resource();
     }
 
     // FIXME: Follow spec for fetching and processing these attributes as well
@@ -161,7 +161,7 @@ void HTMLLinkElement::attribute_changed(FlyString const& name, Optional<String> 
                 // FIXME: - When the type attribute of the link element of an external resource link that is already browsing-context connected is set or changed to a value that does not or no longer matches the Content-Type metadata of the previous obtained external resource, if any.
                 // FIXME: - When the type attribute of the link element of an external resource link that is already browsing-context connected, but was previously not obtained due to the type attribute specifying an unsupported type, is removed or changed.
                 )) {
-            fetch_and_process_linked_resource();
+            default_fetch_and_process_linked_resource();
         }
     }
 }
@@ -272,12 +272,6 @@ JS::GCPtr<Fetch::Infrastructure::Request> HTMLLinkElement::create_link_request(H
 
     // 12. Return request.
     return request;
-}
-
-// https://html.spec.whatwg.org/multipage/semantics.html#fetch-and-process-the-linked-resource
-void HTMLLinkElement::fetch_and_process_linked_resource()
-{
-    default_fetch_and_process_linked_resource();
 }
 
 // https://html.spec.whatwg.org/multipage/semantics.html#default-fetch-and-process-the-linked-resource

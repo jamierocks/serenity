@@ -280,6 +280,50 @@ static void set_up_module_script_request(Fetch::Infrastructure::Request& request
     request.set_priority(options.fetch_priority);
 }
 
+// https://html.spec.whatwg.org/multipage/webappapis.html#get-the-descendant-script-fetch-options
+WebIDL::ExceptionOr<ScriptFetchOptions> get_descendant_script_fetch_options(ScriptFetchOptions original_options, const URL::URL& url, EnvironmentSettingsObject& settings_object)
+{
+    // 1. Let newOptions be a copy of originalOptions.
+    ScriptFetchOptions new_options;
+    new_options.cryptographic_nonce = original_options.cryptographic_nonce;
+    new_options.integrity_metadata = original_options.integrity_metadata;
+    new_options.parser_metadata = original_options.parser_metadata;
+    new_options.credentials_mode = original_options.credentials_mode;
+    new_options.referrer_policy = original_options.referrer_policy;
+    new_options.render_blocking = original_options.render_blocking;
+    new_options.fetch_priority = original_options.fetch_priority;
+
+    // 2. Let integrity be the empty string.
+    String integrity;
+
+    // 3. If settingsObject's global object is a Window object, then set integrity to the result of resolving a module integrity metadata with url and settingsObject.
+    if (is<Window>(settings_object.global_object()))
+        integrity = TRY(resolve_a_module_integrity_metadata(url, settings_object));
+
+    // 4. Set newOptions's integrity metadata to integrity.
+    new_options.integrity_metadata = integrity;
+
+    // 5. Set newOptions's fetch priority to "auto".
+    new_options.fetch_priority = Fetch::Infrastructure::Request::Priority::Auto;
+
+    // 6. Return newOptions.
+    return new_options;
+}
+
+// https://html.spec.whatwg.org/multipage/webappapis.html#resolving-a-module-integrity-metadata
+WebIDL::ExceptionOr<String> resolve_a_module_integrity_metadata(const URL::URL& url, EnvironmentSettingsObject& settings_object)
+{
+    // 1. Assert: settingsObject's global object is a Window object.
+    VERIFY(is<Window>(settings_object.global_object()));
+
+    // 2. Let map be settingsObject's global object's import map.
+    auto map = verify_cast<Window>(settings_object.global_object()).import_map();
+
+    // 3. If map's integrity[url] does not exist, then return the empty string.
+    // 4. Return map's integrity[url].
+    return MUST(String::from_byte_string(map.integrity().get(url).value_or("")));
+}
+
 // https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-classic-script
 WebIDL::ExceptionOr<void> fetch_classic_script(JS::NonnullGCPtr<HTMLScriptElement> element, URL::URL const& url, EnvironmentSettingsObject& settings_object, ScriptFetchOptions options, CORSSettingAttribute cors_setting, String character_encoding, OnFetchScriptComplete on_complete)
 {

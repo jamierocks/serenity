@@ -66,10 +66,18 @@ FindInPageWidget::FindInPageWidget(Tab* tab, WebContentView* content_view)
         find_text_changed();
     });
 
+    m_matches_label = new QLabel(this);
+    m_matches_label->setVisible(false);
+    m_content_view->on_find_in_page_update_matches = [this](i32 total_matches, i32 current_match) {
+        m_matches_label->setText(QString("%1 of %2 matches").arg(total_matches, current_match));
+        m_matches_label->setVisible(!m_find_text->text().isEmpty());
+    };
+
     layout->addWidget(m_find_text, 1);
     layout->addWidget(m_previous_button);
     layout->addWidget(m_next_button);
     layout->addWidget(m_match_case);
+    layout->addWidget(m_matches_label);
     layout->addStretch(1);
     layout->addWidget(m_exit_button);
 }

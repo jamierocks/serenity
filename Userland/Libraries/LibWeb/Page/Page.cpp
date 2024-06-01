@@ -598,8 +598,9 @@ void Page::update_find_in_page_selection()
 {
     clear_selection();
 
-    if (m_find_in_page_matches.is_empty())
+    if (m_find_in_page_matches.is_empty()) {
         return;
+    }
 
     auto current_range = m_find_in_page_matches[m_find_in_page_match_index];
     auto common_ancestor_container = current_range->common_ancestor_container();

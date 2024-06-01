@@ -601,6 +601,14 @@ void WebContentClient::did_update_navigation_buttons_state(u64 page_id, bool bac
         view->did_update_navigation_buttons_state({}, back_enabled, forward_enabled);
 }
 
+void WebContentClient::did_find_in_page_update_matches(u64 page_id, i32 total_matches, i32 current_match)
+{
+    if (auto view = view_for_page_id(page_id); view.has_value()) {
+        if (view->on_find_in_page_update_matches)
+            view->on_find_in_page_update_matches(total_matches, current_match);
+    }
+}
+
 void WebContentClient::inspector_did_load(u64 page_id)
 {
     if (auto view = view_for_page_id(page_id); view.has_value()) {

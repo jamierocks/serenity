@@ -325,6 +325,8 @@ public:
 
     virtual void page_did_change_audio_play_state(HTML::AudioPlayState) { }
 
+    virtual void page_did_find_update_matches(i32, i32) { };
+
     virtual IPC::File request_worker_agent() { return IPC::File {}; }
 
     virtual void inspector_did_load() { }

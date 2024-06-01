@@ -605,6 +605,11 @@ void PageClient::page_did_change_audio_play_state(Web::HTML::AudioPlayState play
     client().async_did_change_audio_play_state(m_id, play_state);
 }
 
+void PageClient::page_did_find_update_matches(i32 total_matches, i32 current_match)
+{
+    client().async_did_find_in_page_update_matches(m_id, total_matches, current_match);
+}
+
 IPC::File PageClient::request_worker_agent()
 {
     auto response = client().send_sync_but_allow_failure<Messages::WebContentClient::RequestWorkerAgent>(m_id);

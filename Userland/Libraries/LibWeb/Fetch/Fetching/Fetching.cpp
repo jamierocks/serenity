@@ -2458,4 +2458,66 @@ void append_fetch_metadata_headers_for_request(Infrastructure::Request& request)
     set_sec_fetch_user_header(request);
 }
 
+// https://w3c.github.io/webappsec-upgrade-insecure-requests/#upgrade-request
+void upgrade_request_to_a_potentially_trustworthy_url_if_appropriate(Infrastructure::Request& request)
+{
+    // 1. If request is a navigation request, append a header named Upgrade-Insecure-Requests with a value of 1 to request’s header
+    //    list if any of the following criteria are met:
+    if (request.is_navigation_request()
+        // 1. request’s URL is not a potentially trustworthy URL
+        && SecureContexts::is_url_potentially_trustworthy(request.url()) != SecureContexts::Trustworthiness::PotentiallyTrustworthy
+        // FIXME: 2. request’s URL's host is not a preloadable HSTS host
+        && true) {
+        auto header = Infrastructure::Header {
+            .name = MUST(ByteBuffer::copy("Upgrade-Insecure-Requests"sv.bytes())),
+            .value = MUST(ByteBuffer::copy("1"sv.bytes())),
+        };
+        request.header_list()->append(move(header));
+    }
+
+    // 2. If request is a navigation request, then:
+    if (request.is_navigation_request()) {
+        // FIXME: 1. If request is a form submission, skip the remaining substeps, and continue upgrading request.
+
+        // 2. If request’s client's target browsing context is a nested browsing context, skip the remaining substeps and continue upgrading request.
+        if (request.client()->target_browsing_context->parent()) {
+            goto continueUpgradingRequest;
+        }
+
+        // 3. Let tuple be a tuple of request’s URL's host and port.
+
+        // 4. If tuple is contained in client's upgrade insecure navigations set, then skip the remaining substeps, and continue upgrading request.
+
+        // 5. Return without further modifying request.
+        return;
+    }
+continueUpgradingRequest:
+
+    // 3. Let upgrade state be the result of executing § 4.2 Should insecure requests be upgraded for client? upon request’s client.
+    auto upgrade_state = should_insecure_request_be_upgraded_for_client(request.client());
+
+    // 4. If upgrade state is Do Not Upgrade, return without modifying request.
+
+    // 5. If request’s URL's scheme is "http", set request’s URL's scheme to "https", and return.
+    if (request.url().scheme() == "http")
+        request.url().set_scheme("https"_string);
+}
+
+// https://w3c.github.io/webappsec-upgrade-insecure-requests/#should-upgrade-for-client
+UpgradeState should_insecure_request_be_upgraded_for_client(JS::GCPtr<HTML::EnvironmentSettingsObject> client)
+{
+    // 1. If client has a responsible document, return the value of its insecure requests policy.
+    if (client->responsible_document()) {
+        // FIXME:
+    }
+
+    // 2. If client has a responsible browsing context, return the value of its insecure requests policy.
+    if (client.bro) {
+
+    }
+
+    // 3. Return Do Not Upgrade.
+    return UpgradeState::DoNotUpgrade;
+}
+
 }

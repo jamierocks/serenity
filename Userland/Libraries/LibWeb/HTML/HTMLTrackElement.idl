@@ -6,7 +6,7 @@ interface HTMLTrackElement : HTMLElement {
 
     [HTMLConstructor] constructor();
 
-    [FIXME, CEReactions] attribute DOMString kind;
+    [CEReactions, Reflect, Enumerated=KindAttribute] attribute DOMString kind;
     [CEReactions, Reflect] attribute DOMString src;
     [CEReactions, Reflect] attribute DOMString srclang;
     [CEReactions, Reflect] attribute DOMString label;
@@ -20,4 +20,14 @@ interface HTMLTrackElement : HTMLElement {
 
     [FIXME] readonly attribute TextTrack track;
 
+};
+
+// https://html.spec.whatwg.org/multipage/media.html#attr-track-kind
+[MissingValueDefault=subtitles, InvalidValueDefault=metadata]
+enum KindAttribute {
+    "subtitles",
+    "captions",
+    "descriptions",
+    "chapters",
+    "metadata"
 };

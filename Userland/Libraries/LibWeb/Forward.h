@@ -460,6 +460,7 @@ class SharedImageRequest;
 class Storage;
 class SubmitEvent;
 class TextMetrics;
+class TextTrack;
 class Timer;
 class TimeRanges;
 class ToggleEvent;

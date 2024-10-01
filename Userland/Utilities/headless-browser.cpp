@@ -745,6 +745,8 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
         if (!app->test_dry_run)
             view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), app->web_driver_ipc_path, app->is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, app->certificates, app->resources_folder));
 
+        auto absolute_test_root_path = LexicalPath::absolute_path(TRY(FileSystem::current_working_directory()), app->test_root_path);
+        app->test_root_path = absolute_test_root_path;
         auto test_glob = ByteString::formatted("*{}*", app->test_glob);
         return run_tests(view, app->test_root_path, test_glob, app->dump_failed_ref_tests, app->dump_gc_graph, app->test_dry_run, app->rebaseline, app->per_test_timeout_in_seconds);
     }

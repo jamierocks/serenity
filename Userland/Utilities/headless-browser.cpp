@@ -542,9 +542,10 @@ static ErrorOr<void> collect_ref_tests(Vector<Test>& tests, StringView path)
     return {};
 }
 
-static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root_path, StringView test_glob, bool dump_failed_ref_tests, bool dump_gc_graph, bool rebaseline, int per_test_timeout_in_seconds)
+static ErrorOr<int> run_tests(HeadlessWebContentView* view, StringView test_root_path, StringView test_glob, bool dump_failed_ref_tests, bool dump_gc_graph, bool dry_run, bool rebaseline, int per_test_timeout_in_seconds)
 {
-    view.clear_content_filters();
+    if (view)
+        view->clear_content_filters();
 
     TRY(load_test_config(test_root_path));
 
@@ -565,16 +566,25 @@ static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root
 
     bool is_tty = isatty(STDOUT_FILENO);
 
-    outln("Running {} tests...", tests.size());
+    if (dry_run)
+        outln("Found {} tests...", tests.size());
+    else
+        outln("Running {} tests...", tests.size());
+
     for (size_t i = 0; i < tests.size(); ++i) {
         auto& test = tests[i];
 
-        if (is_tty) {
+        if (is_tty && !dry_run) {
             // Keep clearing and reusing the same line if stdout is a TTY.
             out("\33[2K\r");
         }
 
         out("{}/{}: {}", i + 1, tests.size(), LexicalPath::relative_path(test.input_path, test_root_path));
+
+        if (dry_run) {
+            outln("");
+            continue;
+        }
 
         if (is_tty)
             fflush(stdout);
@@ -587,7 +597,7 @@ static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root
             continue;
         }
 
-        test.result = TRY(run_test(view, test.input_path, test.expectation_path, test.mode, dump_failed_ref_tests, rebaseline, per_test_timeout_in_seconds));
+        test.result = TRY(run_test(*view, test.input_path, test.expectation_path, test.mode, dump_failed_ref_tests, rebaseline, per_test_timeout_in_seconds));
         switch (*test.result) {
         case TestResult::Pass:
             ++pass_count;
@@ -604,6 +614,9 @@ static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root
         }
     }
 
+    if (dry_run)
+        return 0;
+
     if (is_tty)
         outln("\33[2K\rDone!");
 
@@ -617,7 +630,7 @@ static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root
     }
 
     if (dump_gc_graph) {
-        auto path = view.dump_gc_graph();
+        auto path = view->dump_gc_graph();
         if (path.is_error()) {
             warnln("Failed to dump GC graph: {}", path.error());
         } else {
@@ -662,6 +675,7 @@ struct Application {
         args_parser.add_option(dump_text, "Dump text and exit", "dump-text", 'T');
         args_parser.add_option(test_root_path, "Run tests in path", "run-tests", 'R', "test-root-path");
         args_parser.add_option(test_glob, "Only run tests matching the given glob", "filter", 'f', "glob");
+        args_parser.add_option(test_dry_run, "List the tests that would be run, without running them", "dry-run");
         args_parser.add_option(dump_failed_ref_tests, "Dump screenshots of failing ref tests", "dump-failed-ref-tests", 'D');
         args_parser.add_option(dump_gc_graph, "Dump GC graph", "dump-gc-graph", 'G');
         args_parser.add_option(resources_folder, "Path of the base resources folder (defaults to /res)", "resources", 'r', "resources-root-path");
@@ -693,6 +707,7 @@ struct Application {
     StringView test_root_path;
     ByteString test_glob;
     Vector<ByteString> certificates;
+    bool test_dry_run { false };
     bool rebaseline { false };
     int per_test_timeout_in_seconds { 30 };
 };
@@ -724,12 +739,17 @@ ErrorOr<int> serenity_main(Main::Arguments arguments)
 
     StringBuilder command_line_builder;
     command_line_builder.join(' ', arguments.strings);
-    auto view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), app->web_driver_ipc_path, app->is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, app->certificates, app->resources_folder));
 
     if (!app->test_root_path.is_empty()) {
+        OwnPtr<HeadlessWebContentView> view;
+        if (!app->test_dry_run)
+            view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), app->web_driver_ipc_path, app->is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, app->certificates, app->resources_folder));
+
         auto test_glob = ByteString::formatted("*{}*", app->test_glob);
-        return run_tests(*view, app->test_root_path, test_glob, app->dump_failed_ref_tests, app->dump_gc_graph, app->rebaseline, app->per_test_timeout_in_seconds);
+        return run_tests(view, app->test_root_path, test_glob, app->dump_failed_ref_tests, app->dump_gc_graph, app->test_dry_run, app->rebaseline, app->per_test_timeout_in_seconds);
     }
+
+    auto view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), app->web_driver_ipc_path, app->is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, app->certificates, app->resources_folder));
 
     auto url = WebView::sanitize_url(app->raw_url);
     if (!url.has_value()) {

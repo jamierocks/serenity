@@ -60,8 +60,6 @@
 #    include <Ladybird/Utilities.h>
 #endif
 
-static StringView s_current_test_path;
-
 class HeadlessWebContentView;
 
 struct Application {
@@ -208,11 +206,9 @@ public:
         if (!Application::the().web_driver_ipc_path.is_empty())
             view->client().async_connect_to_webdriver(0, Application::the().web_driver_ipc_path);
 
-        view->m_client_state.client->on_web_content_process_crash = [] {
+        view->m_client_state.client->on_web_content_process_crash = [&view = *view] {
             warnln("\033[31;1mWebContent Crashed!!\033[0m");
-            if (!s_current_test_path.is_empty()) {
-                warnln("    Last started test: {}", s_current_test_path);
-            }
+            warnln("    Last page loaded: {}", view.url());
             VERIFY_NOT_REACHED();
         };
 
@@ -566,7 +562,7 @@ static ErrorOr<TestResult> run_test(HeadlessWebContentView& view, StringView inp
     MUST(promise->await());
 
     auto url = URL::create_with_file_scheme(TRY(FileSystem::real_path(input_path)));
-    s_current_test_path = input_path;
+
     switch (mode) {
     case TestMode::Text:
     case TestMode::Layout:

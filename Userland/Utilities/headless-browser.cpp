@@ -246,7 +246,7 @@ static StringView test_result_to_string(TestResult result)
     VERIFY_NOT_REACHED();
 }
 
-static ErrorOr<TestResult> run_dump_test(HeadlessWebContentView& view, StringView input_path, StringView expectation_path, TestMode mode, bool rebaseline, int timeout_in_milliseconds)
+static ErrorOr<TestResult> run_dump_test(HeadlessWebContentView& view, URL::URL const& url, StringView expectation_path, TestMode mode, bool rebaseline, int timeout_in_milliseconds)
 {
     Core::EventLoop loop;
     bool did_timeout = false;
@@ -255,8 +255,6 @@ static ErrorOr<TestResult> run_dump_test(HeadlessWebContentView& view, StringVie
         did_timeout = true;
         loop.quit(0);
     });
-
-    auto url = URL::create_with_file_scheme(TRY(FileSystem::real_path(input_path)));
 
     String result;
     auto did_finish_test = false;
@@ -337,9 +335,9 @@ static ErrorOr<TestResult> run_dump_test(HeadlessWebContentView& view, StringVie
     auto const color_output = isatty(STDOUT_FILENO) ? Diff::ColorOutput::Yes : Diff::ColorOutput::No;
 
     if (color_output == Diff::ColorOutput::Yes)
-        outln("\n\033[33;1mTest failed\033[0m: {}", input_path);
+        outln("\n\033[33;1mTest failed\033[0m: {}", url);
     else
-        outln("\nTest failed: {}", input_path);
+        outln("\nTest failed: {}", url);
 
     auto hunks = TRY(Diff::from_text(expectation, actual, 3));
     auto out = TRY(Core::File::standard_output());
@@ -351,7 +349,7 @@ static ErrorOr<TestResult> run_dump_test(HeadlessWebContentView& view, StringVie
     return TestResult::Fail;
 }
 
-static ErrorOr<TestResult> run_ref_test(HeadlessWebContentView& view, StringView input_path, bool dump_failed_ref_tests, int timeout_in_milliseconds)
+static ErrorOr<TestResult> run_ref_test(HeadlessWebContentView& view, URL::URL const& url, bool dump_failed_ref_tests, int timeout_in_milliseconds)
 {
     Core::EventLoop loop;
     bool did_timeout = false;
@@ -372,10 +370,10 @@ static ErrorOr<TestResult> run_ref_test(HeadlessWebContentView& view, StringView
         }
     };
     view.on_text_test_finish = [&](auto const&) {
-        dbgln("Unexpected text test finished during ref test for {}", input_path);
+        dbgln("Unexpected text test finished during ref test for {}", url);
     };
 
-    view.load(URL::create_with_file_scheme(TRY(FileSystem::real_path(input_path))));
+    view.load(url);
 
     timeout_timer->start();
     loop.exec();
@@ -390,8 +388,8 @@ static ErrorOr<TestResult> run_ref_test(HeadlessWebContentView& view, StringView
         return TestResult::Pass;
 
     if (dump_failed_ref_tests) {
-        warnln("\033[33;1mRef test {} failed; dumping screenshots\033[0m", input_path);
-        auto title = LexicalPath::title(input_path);
+        warnln("\033[33;1mRef test {} failed; dumping screenshots\033[0m", url);
+        auto title = LexicalPath::title(url.serialize_path().to_byte_string());
         auto dump_screenshot = [&](Gfx::Bitmap& bitmap, StringView path) -> ErrorOr<void> {
             auto screenshot_file = TRY(Core::File::open(path, Core::File::OpenMode::Write));
             auto encoded_data = TRY(Gfx::PNGWriter::encode(bitmap));
@@ -462,13 +460,14 @@ static ErrorOr<TestResult> run_test(HeadlessWebContentView& view, StringView inp
     view.load(URL::URL("about:blank"sv));
     MUST(promise->await());
 
+    auto url = URL::create_with_file_scheme(TRY(FileSystem::real_path(input_path)));
     s_current_test_path = input_path;
     switch (mode) {
     case TestMode::Text:
     case TestMode::Layout:
-        return run_dump_test(view, input_path, expectation_path, mode, rebaseline, per_test_timeout_in_seconds * 1000);
+        return run_dump_test(view, url, expectation_path, mode, rebaseline, per_test_timeout_in_seconds * 1000);
     case TestMode::Ref:
-        return run_ref_test(view, input_path, dump_failed_ref_tests, per_test_timeout_in_seconds * 1000);
+        return run_ref_test(view, url, dump_failed_ref_tests, per_test_timeout_in_seconds * 1000);
     default:
         VERIFY_NOT_REACHED();
     }
@@ -631,92 +630,125 @@ static ErrorOr<int> run_tests(HeadlessWebContentView& view, StringView test_root
     return 1;
 }
 
-ErrorOr<int> serenity_main(Main::Arguments arguments)
-{
-    Core::EventLoop event_loop;
+struct Application {
+    virtual ~Application() = default;
 
-    int screenshot_timeout = 1;
-    StringView raw_url;
-    auto resources_folder = "/res"sv;
+    static NonnullOwnPtr<Application> create(Main::Arguments& arguments, URL::URL new_tab_page_url)
+    {
+        auto app = adopt_own(*new Application());
+        app->initialize(arguments, move(new_tab_page_url));
+
+        return app;
+    }
+
+    virtual void initialize(Main::Arguments const& arguments, URL::URL new_tab_page_url)
+    {
+        Core::ArgsParser args_parser;
+        args_parser.set_general_help("This utility runs the Browser in headless mode.");
+
+        create_platform_arguments(args_parser);
+        args_parser.parse(arguments);
+
+        if (raw_url.is_empty())
+            raw_url = new_tab_page_url.serialize();
+
+        create_platform_options();
+    }
+
+    virtual void create_platform_arguments(Core::ArgsParser& args_parser)
+    {
+        args_parser.add_option(screenshot_timeout, "Take a screenshot after [n] seconds (default: 1)", "screenshot", 's', "n");
+        args_parser.add_option(dump_layout_tree, "Dump layout tree and exit", "dump-layout-tree", 'd');
+        args_parser.add_option(dump_text, "Dump text and exit", "dump-text", 'T');
+        args_parser.add_option(test_root_path, "Run tests in path", "run-tests", 'R', "test-root-path");
+        args_parser.add_option(test_glob, "Only run tests matching the given glob", "filter", 'f', "glob");
+        args_parser.add_option(dump_failed_ref_tests, "Dump screenshots of failing ref tests", "dump-failed-ref-tests", 'D');
+        args_parser.add_option(dump_gc_graph, "Dump GC graph", "dump-gc-graph", 'G');
+        args_parser.add_option(resources_folder, "Path of the base resources folder (defaults to /res)", "resources", 'r', "resources-root-path");
+        args_parser.add_option(web_driver_ipc_path, "Path to the WebDriver IPC socket", "webdriver-ipc-path", 0, "path");
+        args_parser.add_option(is_layout_test_mode, "Enable layout test mode", "layout-test-mode");
+        args_parser.add_option(certificates, "Path to a certificate file", "certificate", 'C', "certificate");
+        args_parser.add_option(rebaseline, "Rebaseline any executed layout or text tests", "rebaseline");
+        args_parser.add_option(per_test_timeout_in_seconds, "Per-test timeout (default: 30)", "per-test-timeout", 't', "seconds");
+        args_parser.add_positional_argument(raw_url, "URL to open", "url", Core::ArgsParser::Required::No);
+    }
+
+    virtual void create_platform_options()
+    {
+        if (!test_root_path.is_empty()) {
+            // --run-tests implies --layout-test-mode.
+            is_layout_test_mode = true;
+        }
+    }
+
+    int screenshot_timeout { 1 };
+    ByteString raw_url;
+    ByteString resources_folder { "/res"sv };
     StringView web_driver_ipc_path;
-    bool dump_failed_ref_tests = false;
-    bool dump_layout_tree = false;
-    bool dump_text = false;
-    bool dump_gc_graph = false;
-    bool is_layout_test_mode = false;
+    bool dump_failed_ref_tests { false };
+    bool dump_layout_tree { false };
+    bool dump_text { false };
+    bool dump_gc_graph { false };
+    bool is_layout_test_mode { false };
     StringView test_root_path;
     ByteString test_glob;
     Vector<ByteString> certificates;
     bool rebaseline { false };
     int per_test_timeout_in_seconds { 30 };
+};
+
+ErrorOr<int> serenity_main(Main::Arguments arguments)
+{
+    Core::EventLoop event_loop;
 
 #if !defined(AK_OS_SERENITY)
     platform_init();
-    resources_folder = s_serenity_resource_root;
 #endif
 
-    Core::ArgsParser args_parser;
-    args_parser.set_general_help("This utility runs the Browser in headless mode.");
-    args_parser.add_option(screenshot_timeout, "Take a screenshot after [n] seconds (default: 1)", "screenshot", 's', "n");
-    args_parser.add_option(dump_layout_tree, "Dump layout tree and exit", "dump-layout-tree", 'd');
-    args_parser.add_option(dump_text, "Dump text and exit", "dump-text", 'T');
-    args_parser.add_option(test_root_path, "Run tests in path", "run-tests", 'R', "test-root-path");
-    args_parser.add_option(test_glob, "Only run tests matching the given glob", "filter", 'f', "glob");
-    args_parser.add_option(dump_failed_ref_tests, "Dump screenshots of failing ref tests", "dump-failed-ref-tests", 'D');
-    args_parser.add_option(dump_gc_graph, "Dump GC graph", "dump-gc-graph", 'G');
-    args_parser.add_option(resources_folder, "Path of the base resources folder (defaults to /res)", "resources", 'r', "resources-root-path");
-    args_parser.add_option(web_driver_ipc_path, "Path to the WebDriver IPC socket", "webdriver-ipc-path", 0, "path");
-    args_parser.add_option(is_layout_test_mode, "Enable layout test mode", "layout-test-mode");
-    args_parser.add_option(certificates, "Path to a certificate file", "certificate", 'C', "certificate");
-    args_parser.add_option(rebaseline, "Rebaseline any executed layout or text tests", "rebaseline");
-    args_parser.add_option(per_test_timeout_in_seconds, "Per-test timeout (default: 30)", "per-test-timeout", 't', "seconds");
-    args_parser.add_positional_argument(raw_url, "URL to open", "url", Core::ArgsParser::Required::No);
-    args_parser.parse(arguments);
+    auto app = Application::create(arguments, "about:newtab"sv);
+#if !defined(AK_OS_SERENITY)
+    app->resources_folder = s_serenity_resource_root;
+#endif
 
     Gfx::FontDatabase::set_default_font_query("Katica 10 400 0");
     Gfx::FontDatabase::set_window_title_font_query("Katica 10 700 0");
     Gfx::FontDatabase::set_fixed_width_font_query("Csilla 10 400 0");
 
-    Core::ResourceImplementation::install(make<Core::ResourceImplementationFile>(MUST(String::from_utf8(resources_folder))));
+    Core::ResourceImplementation::install(make<Core::ResourceImplementationFile>(MUST(String::from_byte_string(app->resources_folder))));
 
-    auto theme_path = LexicalPath::join(resources_folder, "themes"sv, "Default.ini"sv);
+    auto theme_path = LexicalPath::join(app->resources_folder, "themes"sv, "Default.ini"sv);
     auto theme = TRY(Gfx::load_system_theme(theme_path.string()));
 
     // FIXME: Allow passing the window size as an argument.
     static constexpr Gfx::IntSize window_size { 800, 600 };
 
-    if (!test_root_path.is_empty()) {
-        // --run-tests implies --layout-test-mode.
-        is_layout_test_mode = true;
-    }
-
     StringBuilder command_line_builder;
     command_line_builder.join(' ', arguments.strings);
-    auto view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), web_driver_ipc_path, is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, certificates, resources_folder));
+    auto view = TRY(HeadlessWebContentView::create(move(theme), window_size, MUST(command_line_builder.to_string()), app->web_driver_ipc_path, app->is_layout_test_mode ? Ladybird::IsLayoutTestMode::Yes : Ladybird::IsLayoutTestMode::No, app->certificates, app->resources_folder));
 
-    if (!test_root_path.is_empty()) {
-        test_glob = ByteString::formatted("*{}*", test_glob);
-        return run_tests(*view, test_root_path, test_glob, dump_failed_ref_tests, dump_gc_graph, rebaseline, per_test_timeout_in_seconds);
+    if (!app->test_root_path.is_empty()) {
+        auto test_glob = ByteString::formatted("*{}*", app->test_glob);
+        return run_tests(*view, app->test_root_path, test_glob, app->dump_failed_ref_tests, app->dump_gc_graph, app->rebaseline, app->per_test_timeout_in_seconds);
     }
 
-    auto url = WebView::sanitize_url(raw_url);
+    auto url = WebView::sanitize_url(app->raw_url);
     if (!url.has_value()) {
-        warnln("Invalid URL: \"{}\"", raw_url);
+        warnln("Invalid URL: \"{}\"", app->raw_url);
         return Error::from_string_literal("Invalid URL");
     }
 
-    if (dump_layout_tree) {
-        TRY(run_dump_test(*view, raw_url, ""sv, TestMode::Layout, rebaseline, per_test_timeout_in_seconds));
+    if (app->dump_layout_tree) {
+        TRY(run_dump_test(*view, *url, ""sv, TestMode::Layout, app->rebaseline, app->per_test_timeout_in_seconds));
         return 0;
     }
 
-    if (dump_text) {
-        TRY(run_dump_test(*view, raw_url, ""sv, TestMode::Text, rebaseline, per_test_timeout_in_seconds));
+    if (app->dump_text) {
+        TRY(run_dump_test(*view, *url, ""sv, TestMode::Text, app->rebaseline, app->per_test_timeout_in_seconds));
         return 0;
     }
 
-    if (web_driver_ipc_path.is_empty()) {
-        auto timer = TRY(load_page_for_screenshot_and_exit(event_loop, *view, url.value(), screenshot_timeout));
+    if (app->web_driver_ipc_path.is_empty()) {
+        auto timer = TRY(load_page_for_screenshot_and_exit(event_loop, *view, *url, app->screenshot_timeout));
         return event_loop.exec();
     }
 
